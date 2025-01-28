@@ -1,5 +1,8 @@
-import { resolve } from 'path'
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import autoprefixer from 'autoprefixer'
+import tailwind from 'tailwindcss'
+
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
@@ -12,7 +15,15 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': fileURLToPath(new URL('./src', import.meta.url)),
+        '@': fileURLToPath(new URL('./src/renderer/src', import.meta.url))
+        // '@renderer': resolve('src/renderer/src'),
+        // '@': fileURLToPath(new URL('./src', import.meta.url))
+      }
+    },
+    css: {
+      postcss: {
+        plugins: [tailwind(), autoprefixer()]
       }
     },
     plugins: [vue()]
