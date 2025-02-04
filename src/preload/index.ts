@@ -1,8 +1,16 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { FileOperation, IPC_CHANNELS } from '../shared/interfaces'
 
 // Custom APIs for renderer
-const api = {}
+const mainService = {
+  ipcRenderer: {
+    invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
+    readFile: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.FILE.READ, path),
+    writeFile: (operation: FileOperation) => ipcRenderer.invoke(IPC_CHANNELS.FILE.WRITE, operation),
+    deleteFile: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.FILE.DELETE, path)
+  }
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -10,7 +18,7 @@ const api = {}
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('api', mainService)
   } catch (error) {
     console.error(error)
   }
@@ -18,5 +26,5 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.electron = electronAPI
   // @ts-ignore (define in dts)
-  window.api = api
+  window.mainService = mainService
 }
