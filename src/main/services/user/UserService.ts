@@ -39,6 +39,7 @@ export class UserService {
 
   async getUserId() {
     // TODO: Implement session verification logic
+    console.log('getUserId', this.userId)
     return this.userId
   }
 

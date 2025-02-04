@@ -2,28 +2,9 @@ import Database from 'better-sqlite3-multiple-ciphers'
 import path from 'path'
 import { app } from 'electron'
 import fs from 'fs'
+import { AppConfig, LLMConfig } from '@shared/interfaces'
 
-// Add new interface for database row
-export interface LLMConfig {
-  id: string
-  user_id: string
-  name: string
-  provider: string
-  base_url: string | null
-  api_key: string | null
-  model: string
-  temperature: number | null
-  max_tokens: number | null
-  created_at: string
-  updated_at: string
-}
-
-export interface AppConfig {
-  encryptionKey: string
-  dbPath: string
-}
-
-interface ConfigRow {
+export interface ConfigRow {
   key: string
   value: string
 }

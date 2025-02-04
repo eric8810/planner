@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
-import { ConfigService, LLMConfig } from '../../services/config/ConfigService'
+import { ConfigService } from '../../services/config/ConfigService'
+import { LLMConfig } from '@shared/interfaces'
 
 export function registerConfigHandlers(configService: ConfigService): void {
   // Get user config
