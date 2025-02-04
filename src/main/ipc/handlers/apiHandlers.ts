@@ -20,3 +20,8 @@ export function initApiHandlers(apiService: ApiService): void {
     }
   })
 }
+
+export function removeApiHandlers(): void {
+  ipcMain.removeHandler('api:get')
+  ipcMain.removeHandler('api:post')
+}

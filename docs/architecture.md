@@ -16,7 +16,18 @@
       - 节点的 CRUD 操作
       - 节点的查询和过滤
     - 数据模型：
+      - `Board`: 画板模型
+        - `id`: 画板唯一标识
+        - `name`: 画板名称
+        - `description`: 画板描述
+        - `userId`: 所属用户ID
+        - `shareSettings`: 画板共享设置
+        - `createdAt`: 创建时间
+        - `updatedAt`: 更新时间
       - `Node`: 基础节点接口
+        - 新增 `userId`: 节点所属用户ID
+        - 新增 `shareSettings`: 节点共享设置
+        - 新增 `boardId`: 所属画板ID
       - `FileNode`: 文件类型节点
         - `DocumentNode`: 文档类型节点
         - `ImageNode`: 图片类型节点
@@ -33,6 +44,10 @@
         - `ChatModelNode`: 对话模型节点
         - `ImageModelNode`: 图像模型节点
       - `NodeRelation`: 节点关系模型
+    - 用户数据绑定：
+      - 所有节点都与用户账号关联
+      - 支持多用户数据隔离
+      - 提供节点共享机制
 
   - `FileService`: 文件服务
 
@@ -44,6 +59,9 @@
       - 仅负责文件系统层面的操作
       - 不直接管理节点关系
       - 与 BoardService 配合，提供文件相关信息
+    - 用户数据绑定：
+      - 文件存储路径按用户隔离
+      - 支持用户间文件共享权限控制
 
   - `MetadataService`: 元数据服务
 
@@ -55,6 +73,9 @@
       - `Metadata`: 基础元数据接口
       - `FileMetadata`: 文件元数据
       - `LinkMetadata`: 链接元数据
+    - 用户数据绑定：
+      - 元数据与用户账号关联
+      - 缓存按用户隔离存储
 
   - `FileSystemWatcher`: 文件监听服务
     - 监听文件系统变化
@@ -106,6 +127,11 @@
 - 使用 SQLite 数据库进行本地数据存储
 - 支持数据加密
 - 采用 WAL 模式提升性能
+- 数据所有权：
+  - 数据库表设计包含 userId 字段
+  - 实现多用户数据隔离
+  - 支持用户数据导入导出
+  - 提供数据迁移机制
 
 ### 6. 安全特性
 

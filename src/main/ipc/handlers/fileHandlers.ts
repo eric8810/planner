@@ -21,3 +21,8 @@ export function initFileHandlers(fileService: FileService): void {
     }
   })
 }
+
+export function removeFileHandlers(): void {
+  ipcMain.removeHandler('file:read')
+  ipcMain.removeHandler('file:write')
+}

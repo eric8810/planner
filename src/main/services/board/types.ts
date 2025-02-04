@@ -4,9 +4,20 @@ export interface Node {
   type: NodeType
   name: string
   description?: string
+  userId: string
+  boardId: string
+  shareSettings: ShareSettings
+  position: Position
+  data?: any // Added to support storing additional node-specific data
   createdAt: Date
   updatedAt: Date
   metadata?: Record<string, any>
+}
+
+// Add Position interface
+export interface Position {
+  x: number
+  y: number
 }
 
 // Node Types
@@ -80,18 +91,28 @@ export enum AIModelType {
 
 // Node Relations
 export interface NodeRelation {
+  id: string
+  boardId: string
   sourceId: string
   targetId: string
   type: RelationType
+  definition?: RelationDefinition
   createdAt: Date
+  updatedAt: Date
   metadata?: Record<string, any>
 }
 
+export interface RelationDefinition {
+  description: string
+  semanticType?: string
+  strength?: number
+  properties?: Record<string, any>
+}
+
 export enum RelationType {
-  PARENT_CHILD = 'parent-child',
-  REFERENCE = 'reference',
-  LINK = 'link',
-  DEPENDENCY = 'dependency'
+  FORWARD = 'forward',
+  BACKWARD = 'backward',
+  BIDIRECTIONAL = 'bidirectional'
 }
 
 // Specialized Node Types
@@ -151,4 +172,24 @@ export interface ImageModelNode extends AIModelNode {
   modelType: AIModelType.IMAGE
   supportedSizes: string[]
   supportedFormats: string[]
+}
+
+// Board related types
+export interface Board {
+  id: string
+  name: string
+  description: string
+  userId: string
+  shareSettings: ShareSettings
+  nodes: Map<string, Node>
+  relations: Map<string, NodeRelation[]>
+  createdAt: Date
+  updatedAt: Date
+  metadata?: Record<string, any>
+}
+
+export enum ShareSettings {
+  PRIVATE = 'private',
+  PUBLIC = 'public',
+  SHARED = 'shared' // For specific users/groups
 }

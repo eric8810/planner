@@ -1,11 +1,12 @@
 import { OpenAI } from 'openai'
 import { ChatCompletionMessageParam } from 'openai/resources'
 import { ConfigService } from '../config/ConfigService'
+import { UserService } from '../user/UserService'
 
 export type LLMProvider = 'openai' | 'anthropic' | 'deepseek' | string
 
 export interface LLMOptions {
-  provider: LLMProvider
+  provider: string
   model: string
   stream?: boolean
 }
@@ -16,18 +17,26 @@ export class SiliconFlow extends OpenAI {}
 
 export class LLMService {
   private configService: ConfigService
-
-  constructor(configService: ConfigService) {
+  private userService: UserService
+  constructor(configService: ConfigService, userService: UserService) {
     this.configService = configService
+    this.userService = userService
   }
 
-  private async createClient(provider: LLMProvider) {
-    const config = await this.configService.getLLMConfig(provider)
+  private async createClient(provider: string, model: string) {
+    if (!this.userService.userId) {
+      throw new Error('User not found')
+    }
+    const config = await this.configService.getUserLLMConfig(
+      this.userService.userId,
+      provider,
+      model
+    )
 
-    if (config.apiKey && config.baseUrl) {
+    if (config && config.api_key && config.base_url) {
       return new OpenAI({
-        apiKey: config.apiKey,
-        baseURL: config.baseUrl
+        apiKey: config.api_key,
+        baseURL: config.base_url
       })
     }
 
@@ -35,7 +44,7 @@ export class LLMService {
   }
 
   async chat(messages: ChatCompletionMessageParam[], options: LLMOptions) {
-    const client = await this.createClient(options.provider)
+    const client = await this.createClient(options.provider, options.model)
 
     try {
       const response = await client.chat.completions.create({
@@ -52,7 +61,7 @@ export class LLMService {
   }
 
   async completion(prompt: string, options: LLMOptions) {
-    const client = await this.createClient(options.provider)
+    const client = await this.createClient(options.provider, options.model)
 
     try {
       const response = await client.completions.create({
