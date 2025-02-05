@@ -1,4 +1,3 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
 import type {
   FileOperation,
   ApiResponse,
@@ -10,11 +9,10 @@ import type {
   ChatCompletionMessageParam,
   LLMOptions,
   AppConfig
-} from '../shared/interfaces'
+} from './interfaces'
 
 declare global {
   interface Window {
-    electron: ElectronAPI
     mainService: {
       file: {
         // File operations

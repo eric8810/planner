@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 import {
   FileOperation,
   IPC_CHANNELS,
@@ -84,7 +83,6 @@ const mainService = {
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('mainService', mainService)
   } catch (error) {
     console.error(error)
