@@ -1,102 +1,142 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { Node, Edge } from '@vue-flow/core'
-import { VueFlow } from '@vue-flow/core'
+import type { Node, Edge, NodeMouseEvent } from '@vue-flow/core'
+import { useVueFlow, VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 
 // these components are only shown as examples of how to use a custom node or edge
 // you can find many examples of how to create these custom components in the examples page of the docs
 import SpecialNode from './nodes/SpecialNode.vue'
 import SpecialEdge from './nodes/SpecialEdge.vue'
+import DocumentFileNode from './nodes/DocumentFileNode.vue'
+import { DocumentFileNodeData } from './nodes/DocumentFileNode'
+import ImageFileNode from './nodes/ImageFileNode.vue'
+import { ImageFileNodeData } from './nodes/ImageFileNode'
+import { getFileType } from '@/lib/utils'
+import { MiniMap } from '@vue-flow/minimap'
+import { Controls } from '@vue-flow/controls'
+
+// import default controls styles
+import '@vue-flow/controls/dist/style.css'
+// import default minimap styles
+import '@vue-flow/minimap/dist/style.css'
 
 // these are our nodes
-const nodes = ref<Node[]>([
-  // an input node, specified by using `type: 'input'`
-  {
-    id: '1',
-    type: 'input',
-    position: { x: 250, y: 5 },
-    // all nodes can have a data object containing any data you want to pass to the node
-    // a label can property can be used for default nodes
-    data: { label: 'Node 1' }
-  },
-
-  // default node, you can omit `type: 'default'` as it's the fallback type
-  {
-    id: '2',
-    position: { x: 100, y: 100 },
-    data: { label: 'Node 2' }
-  },
-
-  // An output node, specified by using `type: 'output'`
-  {
-    id: '3',
-    type: 'output',
-    position: { x: 400, y: 200 },
-    data: { label: 'Node 3' }
-  },
-
-  // this is a custom node
-  // we set it by using a custom type name we choose, in this example `special`
-  // the name can be freely chosen, there are no restrictions as long as it's a string
-  {
-    id: '4',
-    type: 'special', // <-- this is the custom node type name
-    position: { x: 400, y: 200 },
-    data: {
-      label: 'Node 4',
-      hello: 'world'
-    }
-  }
-])
+const nodes = ref<Node[]>([])
 
 // these are our edges
-const edges = ref<Edge[]>([
-  // default bezier edge
-  // consists of an edge id, source node id and target node id
-  {
-    id: 'e1->2',
-    source: '1',
-    target: '2'
-  },
+const edges = ref<Edge[]>([])
 
-  // set `animated: true` to create an animated edge path
-  {
-    id: 'e2->3',
-    source: '2',
-    target: '3',
-    animated: true
-  },
+const { addNodes, setNodes } = useVueFlow()
 
-  // a custom edge, specified by using a custom type name
-  // we choose `type: 'special'` for this example
-  {
-    id: 'e3->4',
-    type: 'special',
-    source: '3',
-    target: '4',
+const onDrop = async (event: DragEvent) => {
+  event.preventDefault()
 
-    // all edges can have a data object containing any data you want to pass to the edge
-    data: {
-      hello: 'world'
-    }
+  const bounds = (event.currentTarget as HTMLElement)?.getBoundingClientRect()
+  const position = {
+    x: event.clientX - (bounds?.left ?? 0),
+    y: event.clientY - (bounds?.top ?? 0)
   }
-])
+
+  // Handle dropped files
+  if (event.dataTransfer?.files.length) {
+    const files = Array.from(event.dataTransfer.files) as File[]
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        const newNode: Node<ImageFileNodeData> = {
+          id: `${Date.now()}-${nodes.value.length}`,
+          position,
+          type: 'image-file',
+          data: {
+            id: `file-${file.name}`,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            updatedAt: new Date(file.lastModified),
+            url: URL.createObjectURL(file)
+          }
+        }
+        addNodes(newNode)
+      } else {
+        const newNode: Node<DocumentFileNodeData> = {
+          id: `${Date.now()}-${nodes.value.length}`,
+          position,
+          type: 'document-file',
+          data: {
+            id: `file-${file.name}`,
+            name: file.name,
+            type: file.type ? getFileType(file.name) : 'folder',
+            path: (file as any).path,
+            size: file.size,
+            createdAt: new Date(file.lastModified),
+            updatedAt: new Date(file.lastModified),
+            description: file.name
+          }
+        }
+        addNodes(newNode)
+      }
+
+      // Offset next node position slightly if multiple files
+      position.x += 20
+      position.y += 20
+    }
+    return
+  }
+
+  // Handle dropped text/urls
+  const text = event.dataTransfer?.getData('text')
+  if (text) {
+    const isUrl = text.startsWith('http://') || text.startsWith('https://')
+    const newNode: Node = {
+      id: `${Date.now()}-${nodes.value.length}`,
+      position,
+      data: {
+        label: isUrl ? new URL(text).hostname : text,
+        type: isUrl ? 'url' : 'text',
+        content: text
+      }
+    }
+    addNodes(newNode)
+  }
+}
+
+const onDragOver = (event: DragEvent) => {
+  event.preventDefault()
+}
+
+const onNodeClick = (event: NodeMouseEvent) => {
+  console.log(event)
+  const { node } = event
+}
 </script>
 
 <template>
-  <VueFlow class="bg-muted rounded-lg" :nodes="nodes" :edges="edges">
-    <Background :pattern-color="'#3e3e3e'" />
-    <!-- bind your custom node type to a component by using slots, slot names are always `node-<type>` -->
-    <template #node-special="specialNodeProps">
-      <SpecialNode v-bind="specialNodeProps" />
-    </template>
+  <div class="w-full h-full" @drop="onDrop" @dragover="onDragOver">
+    <VueFlow class="bg-muted rounded-lg" :nodes="nodes" :edges="edges" @node-click="onNodeClick">
+      <Background :pattern-color="'#3e3e3e'" />
 
-    <!-- bind your custom edge type to a component by using slots, slot names are always `edge-<type>` -->
-    <template #edge-special="specialEdgeProps">
-      <SpecialEdge v-bind="specialEdgeProps" />
-    </template>
-  </VueFlow>
+      <!-- 图片节点 -->
+      <template #node-image-file="imageFileNodeProps">
+        <ImageFileNode v-bind="imageFileNodeProps" />
+      </template>
+
+      <!-- bind your custom node type to a component by using slots, slot names are always `node-<type>` -->
+      <template #node-special="specialNodeProps">
+        <SpecialNode v-bind="specialNodeProps" />
+      </template>
+
+      <template #node-document-file="documentFileNodeProps">
+        <DocumentFileNode v-bind="documentFileNodeProps" />
+      </template>
+
+      <!-- bind your custom edge type to a component by using slots, slot names are always `edge-<type>` -->
+      <template #edge-special="specialEdgeProps">
+        <SpecialEdge v-bind="specialEdgeProps" />
+      </template>
+      <Controls />
+      <MiniMap />
+    </VueFlow>
+  </div>
 </template>
 
 <style>

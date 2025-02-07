@@ -345,8 +345,10 @@ export class BoardService extends EventEmitter {
     return node
   }
 
-  async getNode(id: string): Promise<Node | null> {
-    const nodeRow = this.db.prepare('SELECT * FROM nodes WHERE id = ?').get(id) as any
+  async getNode(boardId: string, id: string): Promise<Node | null> {
+    const nodeRow = this.db
+      .prepare('SELECT * FROM nodes WHERE id = ? and boardId = ?')
+      .get(id, boardId) as any
 
     if (!nodeRow) return null
 
@@ -359,8 +361,8 @@ export class BoardService extends EventEmitter {
     }
   }
 
-  async updateNode(id: string, updates: Partial<Node>): Promise<Node | null> {
-    const node = await this.getNode(id)
+  async updateNode(boardId: string, id: string, updates: Partial<Node>): Promise<Node | null> {
+    const node = await this.getNode(boardId, id)
     if (!node) return null
 
     const updatedNode = {
@@ -396,8 +398,8 @@ export class BoardService extends EventEmitter {
     return updatedNode
   }
 
-  async deleteNode(id: string): Promise<boolean> {
-    const node = await this.getNode(id)
+  async deleteNode(boardId: string, id: string): Promise<boolean> {
+    const node = await this.getNode(boardId, id)
     if (!node) return false
 
     const result = this.db.prepare('DELETE FROM nodes WHERE id = ?').run(id)
@@ -425,8 +427,8 @@ export class BoardService extends EventEmitter {
       throw new Error('Board not found')
     }
 
-    const sourceNode = await this.getNode(sourceId)
-    const targetNode = await this.getNode(targetId)
+    const sourceNode = await this.getNode(boardId, sourceId)
+    const targetNode = await this.getNode(boardId, targetId)
     if (!sourceNode || !targetNode) {
       throw new Error('Source node or target node not found')
     }
@@ -466,37 +468,42 @@ export class BoardService extends EventEmitter {
     return relation
   }
 
-  async deleteRelation(sourceId: string, targetId: string): Promise<boolean> {
+  async deleteRelation(boardId: string, sourceId: string, targetId: string): Promise<boolean> {
     const result = this.db
-      .prepare('DELETE FROM relations WHERE sourceId = ? AND targetId = ?')
-      .run(sourceId, targetId)
+      .prepare('DELETE FROM relations WHERE sourceId = ? AND targetId = ? AND boardId = ?')
+      .run(sourceId, targetId, boardId)
     const deleted = result.changes > 0
 
     if (deleted) {
-      for (const board of this.boards.values()) {
-        const nodeRelations = board.relations.get(sourceId)
-        if (nodeRelations) {
-          const filteredRelations = nodeRelations.filter((r) => r.targetId !== targetId)
-          board.relations.set(sourceId, filteredRelations)
-        }
+      const board = this.boards.get(boardId)
+      if (board) {
+        const nodeRelations = board.relations.get(sourceId) || []
+        const filteredRelations = nodeRelations.filter((r) => r.targetId !== targetId)
+        board.relations.set(sourceId, filteredRelations)
       }
-      this.emit('relationDeleted', { sourceId, targetId })
+      this.emit('relationDeleted', { boardId, sourceId, targetId })
     }
     return deleted
   }
 
-  async updateRelation(id: string, updates: Partial<NodeRelation>): Promise<NodeRelation | null> {
-    const relationRow = this.db.prepare('SELECT * FROM relations WHERE id = ?').get(id) as any
+  async updateRelation(
+    boardId: string,
+    id: string,
+    updates: Partial<NodeRelation>
+  ): Promise<NodeRelation | null> {
+    const relationRow = this.db
+      .prepare('SELECT * FROM relations WHERE id = ? and boardId = ?')
+      .get(id, boardId) as any
 
     if (!relationRow) return null
 
     // Verify that the new source and target nodes exist if they're being updated
     if (updates.sourceId) {
-      const sourceNode = await this.getNode(updates.sourceId)
+      const sourceNode = await this.getNode(boardId, updates.sourceId)
       if (!sourceNode) throw new Error('Source node not found')
     }
     if (updates.targetId) {
-      const targetNode = await this.getNode(updates.targetId)
+      const targetNode = await this.getNode(boardId, updates.targetId)
       if (!targetNode) throw new Error('Target node not found')
     }
 
@@ -511,7 +518,7 @@ export class BoardService extends EventEmitter {
         `
       UPDATE relations 
       SET sourceId = ?, targetId = ?, type = ?, updatedAt = ?
-      WHERE id = ?
+      WHERE id = ? AND boardId = ?
     `
       )
       .run(
@@ -519,10 +526,11 @@ export class BoardService extends EventEmitter {
         updatedRelation.targetId,
         updatedRelation.type,
         updatedRelation.updatedAt.toISOString(),
-        id
+        id,
+        boardId
       )
 
-    const board = await this.getBoard(updatedRelation.boardId)
+    const board = this.boards.get(boardId)
     if (board) {
       // Remove the relation from the old source's relations list
       if (updates.sourceId && relationRow.sourceId !== updates.sourceId) {

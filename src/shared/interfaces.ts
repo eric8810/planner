@@ -196,16 +196,16 @@ export interface BoardService {
   updateBoard(id: string, updates: Partial<Board>): Promise<Board>
   deleteBoard(id: string): Promise<boolean>
   createNode(boardId: string, nodeData: Partial<Node>): Promise<Node>
-  updateNode(id: string, updates: Partial<Node>): Promise<Node>
-  deleteNode(id: string): Promise<boolean>
+  updateNode(boardId: string, id: string, updates: Partial<Node>): Promise<Node>
+  deleteNode(boardId: string, id: string): Promise<boolean>
   createRelation(
     boardId: string,
     sourceId: string,
     targetId: string,
     type: RelationType
   ): Promise<NodeRelation>
-  updateRelation(id: string, updates: Partial<NodeRelation>): Promise<NodeRelation>
-  deleteRelation(sourceId: string, targetId: string): Promise<boolean>
+  updateRelation(boardId: string, id: string, updates: Partial<NodeRelation>): Promise<NodeRelation>
+  deleteRelation(boardId: string, sourceId: string, targetId: string): Promise<boolean>
   getUserBoards(userId: string): Promise<Board[]>
   getBoardNodes(boardId: string): Promise<Node[]>
   getBoardRelations(boardId: string): Promise<NodeRelation[]>
@@ -222,7 +222,7 @@ export interface LLMService {
 }
 
 export interface UserService {
-  login(token: string): Promise<boolean>
+  login(token: string): Promise<string>
   autoLogin(): Promise<boolean>
   getUserId(): Promise<string>
   logout(): Promise<void>

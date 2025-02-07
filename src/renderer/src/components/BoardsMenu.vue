@@ -14,28 +14,46 @@ import {
   SidebarMenuButton,
   SidebarMenuAction
 } from '@/components/ui/sidebar'
+import { Board } from '@shared/interfaces'
 import { Folder, Forward, MoreHorizontal, Trash2 } from 'lucide-vue-next'
-import type { Component } from 'vue'
+import { Icon } from '@iconify/vue'
 
-interface Project {
-  name: string
-  url: string
-  icon: Component
-}
+const emit = defineEmits<{
+  (e: 'selectBoard', boardId: string): void
+  (e: 'createBoard'): void
+}>()
 
 defineProps<{
-  projects: Project[]
+  boards: Board[]
+  selectedBoard: Board | null
 }>()
+
+const onSelectBoard = (boardId: string) => {
+  emit('selectBoard', boardId)
+}
+
+const onCreateBoard = () => {
+  emit('createBoard')
+}
 </script>
 
 <template>
   <SidebarGroup class="group-data-[collapsible=icon]:hidden">
     <SidebarGroupLabel>Projects</SidebarGroupLabel>
     <SidebarMenu>
-      <SidebarMenuItem v-for="item in projects" :key="item.name">
-        <SidebarMenuButton as-child>
-          <a :href="item.url">
-            <component :is="item.icon" />
+      <SidebarMenuItem>
+        <SidebarMenuButton variant="outline" @click="onCreateBoard">
+          <Icon icon="lucide:plus" />
+          <span>创建面板</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem v-for="item in boards" :key="item.name">
+        <SidebarMenuButton
+          :class="['cursor-pointer', selectedBoard?.id === item.id ? ' bg-accent' : '']"
+          as-child
+        >
+          <a @click="onSelectBoard(item.id)">
+            <Icon icon="lucide:git-branch" />
             <span>{{ item.name }}</span>
           </a>
         </SidebarMenuButton>
@@ -62,12 +80,6 @@ defineProps<{
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </SidebarMenuItem>
-      <SidebarMenuItem>
-        <SidebarMenuButton class="text-sidebar-foreground/70">
-          <MoreHorizontal class="text-sidebar-foreground/70" />
-          <span>More</span>
-        </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>
   </SidebarGroup>
